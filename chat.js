@@ -1,27 +1,14 @@
 (function () {
     if (document.getElementById('hyde-chat-host')) return;
 
-    // --- 1. ЗЧИТУВАННЯ ПАРАМЕТРІВ ---
+    // --- 1. ПАРАМЕТРИ ТА КЕШУВАННЯ ---
     let CLIENT_ID = 'unknown_client';
-    let THEME_COLOR = '#0291C0';
+    let THEME_COLOR = '#0291C0'; // Дефолтний колір (якщо база не відповість)
     let CHAT_TITLE_CUSTOM = null;
 
     const currentScript = document.currentScript || document.querySelector('script[src*="chat.js"]');
     if (currentScript) {
         CLIENT_ID = currentScript.getAttribute('data-client-id') || CLIENT_ID;
-        THEME_COLOR = currentScript.getAttribute('data-color') || THEME_COLOR;
-        CHAT_TITLE_CUSTOM = currentScript.getAttribute('data-title') || CHAT_TITLE_CUSTOM;
-
-        const src = currentScript.getAttribute('src');
-        if (src && src.includes('?')) {
-            const urlParams = new URLSearchParams(src.split('?')[1]);
-            if (urlParams.has('clientId')) CLIENT_ID = urlParams.get('clientId');
-            if (urlParams.has('color')) {
-                let c = urlParams.get('color');
-                THEME_COLOR = c.startsWith('#') ? c : '#' + c;
-            }
-            if (urlParams.has('title')) CHAT_TITLE_CUSTOM = urlParams.get('title');
-        }
     }
 
     // --- 2. СТВОРЕННЯ SHADOW DOM ---
@@ -63,15 +50,18 @@
         file: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>'
     };
 
-    // --- 4. СТИЛІ ---
+    // --- 4. СТИЛІ (З CSS-ЗМІННОЮ) ---
     const styleSheet = document.createElement("style");
     styleSheet.textContent = `
+        :host {
+            --hyde-theme: ${THEME_COLOR}; /* Базовий колір */
+        }
         * { box-sizing: border-box; font-family: 'Inter', -apple-system, sans-serif; }
         #hyde-chat-widget { position: absolute; bottom: 0; right: 0; width: 100%; height: 100%; pointer-events: none; }
         
         #hyde-toggle-btn, #hyde-chat-window, #hyde-greeting-bubble, #hyde-lightbox { pointer-events: auto; }
 
-        #hyde-toggle-btn { position: absolute; bottom: 20px; right: 20px; width: 64px; height: 60px; background: ${THEME_COLOR}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); transition: transform 0.3s ease; z-index: 2; }
+        #hyde-toggle-btn { position: absolute; bottom: 20px; right: 20px; width: 64px; height: 60px; background: var(--hyde-theme); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); transition: transform 0.3s ease, background 0.3s ease; z-index: 2; }
         
         #hyde-unread-badge { position: absolute; top: -4px; right: -4px; background: #ff4d4f; color: white; font-size: 12px; font-weight: bold; width: 22px; height: 22px; border-radius: 50%; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 2px solid #fff; z-index: 3; }
         #hyde-unread-badge.show { display: flex; }
@@ -84,12 +74,12 @@
         #hyde-chat-window { opacity: 0; visibility: hidden; pointer-events: none !important; transform: translateY(20px) scale(0.95); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); width: 340px; height: 540px; max-height: calc(100vh - 110px); background: #ffffff; border-radius: 18px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; position: absolute; bottom: 95px; right: 20px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); z-index: 3; }
         #hyde-chat-window.open { opacity: 1; visibility: visible; pointer-events: auto !important; transform: translateY(0) scale(1); }
         
-        #hyde-chat-header { background: ${THEME_COLOR}; color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 16px; }
+        #hyde-chat-header { background: var(--hyde-theme); color: white; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 16px; transition: background 0.3s ease; }
         #hyde-close-btn { background: none; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 50%; }
         #hyde-chat-messages { flex: 1; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
         
         .hyde-msg { padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4; max-width: 85%; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.3s ease; }
-        .hyde-msg.user { background: ${THEME_COLOR}; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .hyde-msg.user { background: var(--hyde-theme); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .hyde-msg.bot { background: #ffffff; color: #333; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #eee; }
         
         .hyde-system-msg { font-size: 12px; text-align: center; color: #555; background: #e9ecef; border: none; align-self: center; border-radius: 12px; padding: 6px 12px; margin: 5px 0; }
@@ -106,14 +96,14 @@
 
         #hyde-chat-footer { padding: 10px 12px; display: flex; align-items: center; gap: 6px; background: #ffffff; border-top: 1px solid #eaeaea; }
         #hyde-file-input { display: none; }
-        #hyde-chat-input { flex: 1; border: 1px solid #e0e0e0; border-radius: 20px; padding: 10px 12px; font-size: 16px !important; outline: none; background: #f8f9fa; width: 100%; margin: 0; }
-        #hyde-chat-input:focus { border-color: ${THEME_COLOR}; background: #ffffff; }
+        #hyde-chat-input { flex: 1; border: 1px solid #e0e0e0; border-radius: 20px; padding: 10px 12px; font-size: 16px !important; outline: none; background: #f8f9fa; width: 100%; margin: 0; transition: border-color 0.3s ease; }
+        #hyde-chat-input:focus { border-color: var(--hyde-theme); background: #ffffff; }
         #hyde-record-timer { display: none; flex: 1; align-items: center; justify-content: center; border: 1px solid #ffccc7; border-radius: 20px; padding: 9px 10px; font-size: 14px; background: #fff0f0; color: #ff4d4f; font-weight: 500; }
         .hyde-blink-dot { animation: blink 1s infinite; margin-right: 6px; font-size: 10px; }
         
         .hyde-action-group { display: flex; gap: 2px; }
         .hyde-btn { background: none; border: none; cursor: pointer; color: #757575; display: flex; align-items: center; justify-content: center; padding: 6px; border-radius: 50%; }
-        .hyde-btn.primary-btn { color: ${THEME_COLOR}; padding-left: 8px; }
+        .hyde-btn.primary-btn { color: var(--hyde-theme); padding-left: 8px; transition: color 0.3s ease; }
         .hyde-btn.recording-active { color: #ff4d4f; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         
@@ -144,11 +134,11 @@
         
         <div id="hyde-chat-window">
             <div id="hyde-chat-header">
-                <div style="display: flex; align-items: center; gap: 8px;"><b>${escapeHTML(CHAT_TITLE)}</b></div>
+                <div style="display: flex; align-items: center; gap: 8px;"><b id="hyde-chat-title-el">${escapeHTML(CHAT_TITLE)}</b></div>
                 <button id="hyde-close-btn" title="${t.close}">${icons.close}</button>
             </div>
             <div id="hyde-chat-messages">
-                <div class="hyde-msg bot">${escapeHTML(t.greeting)}</div>
+                <div class="hyde-msg bot" id="hyde-first-msg">${escapeHTML(t.greeting)}</div>
             </div>
             <div style="position: relative;">
                 <div id="hyde-file-preview" class="hyde-file-preview">
@@ -175,6 +165,9 @@
     shadow.appendChild(widgetWrapper);
 
     // --- 6. ЛОГІКА ДОДАТКУ ---
+    const WEBHOOK_URL = 'https://flow.hyde-media.com/webhook/3db1a162-e007-4c8a-a761-8e8e797f5b0e'; // Новий захищений вебхук повідомлень
+    const CONFIG_URL = 'https://flow.hyde-media.com/webhook/chat-config'; // Новий вебхук для налаштувань
+
     function generateUUID() {
         let d = new Date().getTime();
         let d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now() * 1000)) || 0;
@@ -228,16 +221,43 @@
     const greetingClose = shadow.querySelector('#hyde-greeting-close');
     const bubbleTitle = shadow.querySelector('#hyde-bubble-title');
     const bubbleText = shadow.querySelector('#hyde-bubble-text');
+    const titleEl = shadow.querySelector('#hyde-chat-title-el');
+    const firstMsgEl = shadow.querySelector('#hyde-first-msg');
     
     const lightbox = shadow.querySelector('#hyde-lightbox');
     const lightboxImg = shadow.querySelector('#hyde-lightbox-img');
 
-    const WEBHOOK_URL = 'https://flow.hyde-media.com/webhook/chat';
     let selectedFile = null;
     let historyLoaded = false; 
 
     let hasVisited = localStorage.getItem('hyde_has_visited');
     let unreadCount = parseInt(localStorage.getItem('hyde_unread_count') || '0', 10);
+
+    // --- 7. ФУНКЦІЯ ЗАВАНТАЖЕННЯ КОНФІГУ З N8N/NOCODB ---
+    function applyConfig(config) {
+        if (config.theme_color) host.style.setProperty('--hyde-theme', config.theme_color);
+        if (config.chat_title && titleEl) titleEl.innerText = config.chat_title;
+        if (config.greeting) {
+            if (bubbleText) bubbleText.innerText = config.greeting;
+            if (firstMsgEl && !historyLoaded) firstMsgEl.innerText = config.greeting;
+        }
+    }
+
+    async function fetchConfig() {
+        const cacheKey = 'hyde_config_' + CLIENT_ID;
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            try { applyConfig(JSON.parse(cached)); } catch(e) {}
+        }
+        try {
+            const res = await fetch(`${CONFIG_URL}?clientId=${CLIENT_ID}`);
+            if (res.ok) {
+                const config = await res.json();
+                localStorage.setItem(cacheKey, JSON.stringify(config));
+                applyConfig(config);
+            }
+        } catch(e) { console.error("Помилка завантаження конфігу:", e); }
+    }
 
     function setUnreadCount(count) {
         unreadCount = count;
@@ -576,4 +596,5 @@
     }
 
     initSession();
+    fetchConfig(); // Запуск завантаження кольорів та текстів з NocoDB
 })();
